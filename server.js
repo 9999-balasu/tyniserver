@@ -14,10 +14,17 @@ const server = http.createServer(app);
 // 2. Setup Socket.IO
 // ==================
 const io = new Server(server, {
+  // cors: {
+  //   origin: "*", // allow all origins
+  //   methods: ["GET", "POST"],
+  // },
+
   cors: {
-    origin: "*", // allow all origins
-    methods: ["GET", "POST"],
-  },
+  origin: ["https://vehicle-connect-fp9q.vercel.app"],
+  methods: ["GET", "POST"],
+  credentials: true,
+},
+
 });
 
 // ==================
