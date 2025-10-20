@@ -113,6 +113,119 @@
 // });
 
 
+// require("dotenv").config();
+// const express = require("express");
+// const http = require("http");
+// const { Server } = require("socket.io");
+// const mongoose = require("mongoose");
+// const cors = require("cors");
+
+// const app = express();
+// app.use(
+//   cors({
+//     origin: ["https://vehicle-connect-fp9q.vercel.app"], // your frontend on Vercel
+//     methods: ["GET", "POST"],
+//     credentials: true,
+//   })
+// );
+// app.use(express.json());
+
+// const server = http.createServer(app);
+
+// // ==================
+// // MongoDB
+// // ==================
+// mongoose
+//   .connect(process.env.MONGODB_URI)
+//   .then(() => console.log("✅ MongoDB connected"))
+//   .catch((err) => console.error("❌ MongoDB error:", err));
+
+// // ==================
+// // Chat Schema
+// // ==================
+// const chatSchema = new mongoose.Schema({
+//   user: String,
+//   message: String,
+//   timestamp: { type: Date, default: Date.now },
+//   vehicleId: String,
+// });
+
+// const Chat = mongoose.model("Chat", chatSchema);
+
+// // ==================
+// // Socket.IO setup
+// // ==================
+// const io = new Server(server, {
+//   cors: {
+//     origin: ["https://vehicle-connect-fp9q.vercel.app"],
+//     methods: ["GET", "POST"],
+//     credentials: true,
+//   },
+// });
+
+// // ==================
+// // Socket.IO events
+// // ==================
+// io.on("connection", (socket) => {
+//   console.log("🔌 User connected:", socket.id);
+
+//   // Join specific vehicle chat room
+//   socket.on("joinRoom", async (vehicleId) => {
+//     socket.join(vehicleId);
+//     console.log(`📦 Joined room: ${vehicleId}`);
+
+//     // Send previous messages for that vehicle
+//     const history = await Chat.find({ vehicleId }).sort({ timestamp: 1 }).limit(50);
+//     socket.emit("chatHistory", history);
+//   });
+
+// //   // Receive and save chat messages
+// //   socket.on("chatMessage", async (data) => {
+// //     try {
+// //       const newMsg = await Chat.create({
+// //         user: data.user,
+// //         message: data.message,
+// //         timestamp: new Date(),
+// //         vehicleId: data.vehicleId, // ✅ important
+// //       });
+
+// //       // Send only to users in the same vehicle room
+// //       io.to(data.vehicleId).emit("chatMessage", newMsg);
+// //     } catch (err) {
+// //       console.error("❌ Error saving chat:", err);
+// //     }
+// //   });
+
+// //   socket.on("disconnect", () => console.log("❌ User disconnected:", socket.id));
+// // });
+
+// // Receive and save chat messages
+// socket.on("chatMessage", async (data) => {
+//   try {
+//     console.log("💬 New message received:", data);
+
+//     const newMsg = await Chat.create({
+//       user: data.user,
+//       message: data.message,
+//       timestamp: new Date(),
+//       vehicleId: data.vehicleId, // ✅ important
+//     });
+
+//     console.log("✅ Message saved to DB:", newMsg);
+
+//     // Send only to users in the same vehicle room
+//     io.to(data.vehicleId).emit("chatMessage", newMsg);
+//   } catch (err) {
+//     console.error("❌ Error saving chat:", err.message);
+//   }
+// });
+// })
+
+// // ==================
+// // Start server
+// // ==================
+// const PORT = process.env.PORT || 4000;
+// server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
@@ -121,24 +234,28 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
+
+// ✅ Allow your deployed Vercel frontend
 app.use(
   cors({
-    origin: ["https://vehicle-connect-fp9q.vercel.app"], // your frontend on Vercel
+    origin: ["https://vehicle-connect-fp9q.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true,
   })
 );
 app.use(express.json());
 
-const server = http.createServer(app);
-
 // ==================
-// MongoDB
+// MongoDB Connection
 // ==================
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB error:", err));
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
+mongoose.connection.on("connected", () => {
+  console.log(`🗄️ Connected to MongoDB database: ${mongoose.connection.name}`);
+});
 
 // ==================
 // Chat Schema
@@ -153,8 +270,9 @@ const chatSchema = new mongoose.Schema({
 const Chat = mongoose.model("Chat", chatSchema);
 
 // ==================
-// Socket.IO setup
+// Socket.IO Setup
 // ==================
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["https://vehicle-connect-fp9q.vercel.app"],
@@ -164,65 +282,48 @@ const io = new Server(server, {
 });
 
 // ==================
-// Socket.IO events
+// Socket Events
 // ==================
 io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
 
-  // Join specific vehicle chat room
+  // Join a room for a specific vehicle
   socket.on("joinRoom", async (vehicleId) => {
     socket.join(vehicleId);
-    console.log(`📦 Joined room: ${vehicleId}`);
+    console.log(`📦 User joined room: ${vehicleId}`);
 
-    // Send previous messages for that vehicle
     const history = await Chat.find({ vehicleId }).sort({ timestamp: 1 }).limit(50);
     socket.emit("chatHistory", history);
   });
 
-//   // Receive and save chat messages
-//   socket.on("chatMessage", async (data) => {
-//     try {
-//       const newMsg = await Chat.create({
-//         user: data.user,
-//         message: data.message,
-//         timestamp: new Date(),
-//         vehicleId: data.vehicleId, // ✅ important
-//       });
-
-//       // Send only to users in the same vehicle room
-//       io.to(data.vehicleId).emit("chatMessage", newMsg);
-//     } catch (err) {
-//       console.error("❌ Error saving chat:", err);
-//     }
-//   });
-
-//   socket.on("disconnect", () => console.log("❌ User disconnected:", socket.id));
-// });
-
-// Receive and save chat messages
-socket.on("chatMessage", async (data) => {
-  try {
+  // When a new message arrives
+  socket.on("chatMessage", async (data) => {
     console.log("💬 New message received:", data);
 
-    const newMsg = await Chat.create({
-      user: data.user,
-      message: data.message,
-      timestamp: new Date(),
-      vehicleId: data.vehicleId, // ✅ important
-    });
+    try {
+      const newMsg = await Chat.create({
+        user: data.user,
+        message: data.message,
+        timestamp: new Date(),
+        vehicleId: data.vehicleId,
+      });
 
-    console.log("✅ Message saved to DB:", newMsg);
+      console.log("✅ Message saved to DB:", newMsg);
 
-    // Send only to users in the same vehicle room
-    io.to(data.vehicleId).emit("chatMessage", newMsg);
-  } catch (err) {
-    console.error("❌ Error saving chat:", err.message);
-  }
+      // Send the message only to users in that vehicle room
+      io.to(data.vehicleId).emit("chatMessage", newMsg);
+    } catch (err) {
+      console.error("❌ Error saving chat message:", err);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected:", socket.id);
+  });
 });
-})
 
 // ==================
-// Start server
+// Start Server
 // ==================
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
