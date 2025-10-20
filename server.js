@@ -179,25 +179,47 @@ io.on("connection", (socket) => {
     socket.emit("chatHistory", history);
   });
 
-  // Receive and save chat messages
-  socket.on("chatMessage", async (data) => {
-    try {
-      const newMsg = await Chat.create({
-        user: data.user,
-        message: data.message,
-        timestamp: new Date(),
-        vehicleId: data.vehicleId, // ✅ important
-      });
+//   // Receive and save chat messages
+//   socket.on("chatMessage", async (data) => {
+//     try {
+//       const newMsg = await Chat.create({
+//         user: data.user,
+//         message: data.message,
+//         timestamp: new Date(),
+//         vehicleId: data.vehicleId, // ✅ important
+//       });
 
-      // Send only to users in the same vehicle room
-      io.to(data.vehicleId).emit("chatMessage", newMsg);
-    } catch (err) {
-      console.error("❌ Error saving chat:", err);
-    }
-  });
+//       // Send only to users in the same vehicle room
+//       io.to(data.vehicleId).emit("chatMessage", newMsg);
+//     } catch (err) {
+//       console.error("❌ Error saving chat:", err);
+//     }
+//   });
 
-  socket.on("disconnect", () => console.log("❌ User disconnected:", socket.id));
+//   socket.on("disconnect", () => console.log("❌ User disconnected:", socket.id));
+// });
+
+// Receive and save chat messages
+socket.on("chatMessage", async (data) => {
+  try {
+    console.log("💬 New message received:", data);
+
+    const newMsg = await Chat.create({
+      user: data.user,
+      message: data.message,
+      timestamp: new Date(),
+      vehicleId: data.vehicleId, // ✅ important
+    });
+
+    console.log("✅ Message saved to DB:", newMsg);
+
+    // Send only to users in the same vehicle room
+    io.to(data.vehicleId).emit("chatMessage", newMsg);
+  } catch (err) {
+    console.error("❌ Error saving chat:", err.message);
+  }
 });
+})
 
 // ==================
 // Start server
